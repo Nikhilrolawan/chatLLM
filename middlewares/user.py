@@ -1,34 +1,38 @@
-import asyncio
-import jwt
 import os
 from dotenv import load_dotenv
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Depends
+from sqlalchemy import select
+from models import model
+from db.engine import get_db
+import jwt
 
 load_dotenv()
 JWT_SECRET = os.getenv("JWT_SECRET")
 
-def user_middleware(authorization: str = Header()):
-    if not authorization:
+async def get_current_user(authorization: str = Header(), db = Depends(get_db)):
+    credential_exception = HTTPException(status_code=401, detail="Could not validate credentials")
+
+    parts = authorization.split(" ")
+    if len(parts) != 2: raise HTTPException(status_code=401, detail="invalid authorization header format")
+    scheme, token = parts
+    if scheme.lower() != "bearer":
         raise HTTPException(
             status_code=401,
-            detail="Missing auth headers"
+            detail="Invalid authentication scheme"
         )
     try:
-        scheme, token = authorization.split(" ")
-        if scheme.lower() != "bearer":
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid authentication scheme"
-            )
-        decoded = jwt.decode(
+        payload = jwt.decode(
             jwt = token,
             key=JWT_SECRET,
-            algorithms=["HS265"],
+            algorithms=["HS256"],
         )
-        return decoded
-    
+        email = payload.get("email")
+        if not email: raise credential_exception
     except jwt.InvalidTokenError:
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid Credentials",
-        )
+        raise credential_exception
+
+    query = select(model.User).where(model.User.email == email)
+    res = await db.execute(query)
+    user = res.scalar_one_or_none()
+    if not user: raise credential_exception
+    return user

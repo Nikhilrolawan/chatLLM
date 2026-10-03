@@ -36,3 +36,8 @@ class ReadConversation(BaseModel):
     title: str
     created_at: datetime
     messages: list[ReadMessage] = []
+
+
+class ChatMessage(BaseModel):
+    conversation_id: str | None = None
+    content: str
