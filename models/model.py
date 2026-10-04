@@ -13,7 +13,7 @@ class User(Base):
     name = Column(String)
     email = Column(String, index=True, unique=True)
     hashed_pass = Column(String)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     
     conversations = relationship("Conversation", back_populates="user")
 
@@ -24,7 +24,7 @@ class Conversation(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id"), index=True)
     title = Column(String)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="conversations")
     messages = relationship(
@@ -39,6 +39,6 @@ class Message(Base):
     conversation_id = Column(String, ForeignKey("conversations.id"), index=True)
     role = Column(String)  # e.g., "user", "assistant"
     content = Column(String)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     conversation = relationship("Conversation", back_populates="messages")
